@@ -1,0 +1,18 @@
+{
+  "name": "telward",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Marc Höffl <marc.hoeffl@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^2.5.0",
+    "dirty": "^1.1.0",
+    "localforage": "^1.5.0",
+    "prompt": "^1.0.0",
+    "telegram-mtproto": "^2.2.2"
+  }
+}
