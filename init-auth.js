@@ -1,3 +1,4 @@
+const init = require('./init');
 const { login, register, logout } = require('./auth');
 const myStorage = require('./storage')
 
