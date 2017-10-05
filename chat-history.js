@@ -15,7 +15,7 @@ const getChat = async (telegram, tag) => {
 }
 
 const chatHistory = async (telegram, chat, until) => {
-  const max = 400
+  const max = 10
   const limit = 10
   let offset = 0
   let full = [],
