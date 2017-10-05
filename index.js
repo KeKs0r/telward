@@ -6,7 +6,7 @@ const { getChat, getNewMessages, forwardMessages } = require('./chat-history')
 const myStorage = require('./storage')
 
 
-async function wait(timeout = 1000) {
+async function wait(timeout = 3000) {
   return new Promise((resolve) => {
     setTimeout(resolve, timeout)
   })
