@@ -9,7 +9,8 @@ const getChat = async (telegram, tag) => {
     limit: 50,
   })
   const { chats } = dialogs
-  const selectedChat = await selectChat(chats, tag)
+  const filtered = chats.filter(c => (c._ === 'channel' || c._ === 'chat') && !c.deactivated)
+  const selectedChat = await selectChat(filtered, tag)
 
   return selectedChat
 }
@@ -21,12 +22,10 @@ const chatHistory = async (telegram, chat, until) => {
   let full = [],
     messages = []
   let oldest
+
   do {
     const history = await telegram('messages.getHistory', {
-      peer: {
-        _: 'inputPeerChat',
-        chat_id: chat.id
-      },
+      peer: _getPeer(chat),
       max_id: offset,
       offset: -full.length,
       limit
@@ -35,7 +34,7 @@ const chatHistory = async (telegram, chat, until) => {
     full = full.concat(messages)
     messages.length > 0 && (offset = messages[0].id)
     oldest = _.get(_.last(messages), 'id')
-    console.log('Offset', offset, 'oldest', oldest)
+    console.log('Offset', offset, 'oldest', oldest, 'until', until)
   } while (messages.length === limit && (!until || oldest < until))
   if (until) {
     full = full.filter(_ => _.id > until)
@@ -45,6 +44,18 @@ const chatHistory = async (telegram, chat, until) => {
 }
 
 
+const _getPeer = (chat) => {
+  const peer = (chat._ === 'channel') ? {
+    _: 'inputPeerChannel',
+    channel_id: chat.id,
+    access_hash: chat.access_hash
+  } : {
+      _: 'inputPeerChat',
+      chat_id: chat.id
+    }
+  return peer
+}
+
 const getNewMessages = async (telegram, chat) => {
   const storage = await myStorage()
   const lastMessage = await storage.get('messages:last')
@@ -52,16 +63,16 @@ const getNewMessages = async (telegram, chat) => {
   return newMessages
 }
 
-const forwardMessages = async (telegram, messages, destination) => {
+const forwardMessages = async (telegram, messages, destination, source) => {
   try {
     const reversed = _.reverse(messages)
     const id = _.map(reversed, 'id')
+    const to_peer = _getPeer(destination)
+    const from_peer = _getPeer(source)
     const forward = await telegram('messages.forwardMessages', {
-      to_peer: {
-        _: 'inputPeerChat',
-        chat_id: destination.id
-      },
+      to_peer,
       id,
+      from_peer,
       random_id: id
     })
   } catch (e) {
@@ -84,12 +95,11 @@ const selectChat = async (chats, tag) => {
   if (chat) {
     return chat
   }
-  const chatNames = _.map(chats, 'title')
-  console.log('Your chat list')
-  chatNames.map((name, id) => console.log(`${id}  ${name}`))
+  console.log('Select chat for ' + tag)
+  chats.map((channel, index) => console.log(`${index}  ${channel.title} (${channel.id})`))
   console.log('Select chat by index')
   const chatIndex = await inputField('index')
-  selectedChat = chats[+chatIndex]
+  selectedChat = chats[chatIndex]
   storage.set(`chat:${tag}`, selectedChat)
   return selectedChat
 }

@@ -29,6 +29,7 @@ async function boot() {
     console.log('Destination Chat:', source.title)
     run(telegram, source, destination)
   } catch (e) {
+    console.error(e)
     process.exit(1)
   }
 }
@@ -52,7 +53,7 @@ async function forwardNew(telegram, source, destination) {
   if (messages.length === 0) {
     return
   }
-  await forwardMessages(telegram, messages, destination)
+  await forwardMessages(telegram, messages, destination, source)
   storage.set('messages:last', messages[0].id)
 }
 
