@@ -2,22 +2,49 @@ const _ = require('lodash')
 const { inputField } = require('./input')
 const myStorage = require('./storage')
 
-
+async function wait(time) {
+  return new Promise(resolve => setTimeout(resolve, time))
+}
 
 const getChat = async (telegram, tag) => {
   const dialogs = await telegram('messages.getDialogs', {
-    limit: 50,
+    limit: 50
   })
   const { chats } = dialogs
-  const filtered = chats.filter(c => (c._ === 'channel' || c._ === 'chat') && !c.deactivated)
+  const filtered = chats.filter(
+    c => (c._ === 'channel' || c._ === 'chat') && !c.deactivated
+  )
   const selectedChat = await selectChat(filtered, tag)
 
   return selectedChat
 }
 
+const completeHistory = async (telegram, chat, fullLimit) => {
+  let offset = 0
+  let result = []
+  let limit = 50
+  try {
+    do {
+      const history = await telegram('messages.getHistory', {
+        peer: _getPeer(chat),
+        max_id: offset,
+        offset: -result.length,
+        limit
+      })
+      await wait(1000)
+      let messages = history.messages
+      result = result.concat(messages)
+      console.log('Current Length: ', result.length)
+    } while (result.length < fullLimit)
+  } catch (e) {
+    console.error(e)
+  }
+  return result
+}
+
 const chatHistory = async (telegram, chat, until) => {
-  const max = 10
-  const limit = 10
+  const max = 20
+  const limit = 20
   let offset = 0
   let full = [],
     messages = []
@@ -43,16 +70,18 @@ const chatHistory = async (telegram, chat, until) => {
   return full
 }
 
-
-const _getPeer = (chat) => {
-  const peer = (chat._ === 'channel') ? {
-    _: 'inputPeerChannel',
-    channel_id: chat.id,
-    access_hash: chat.access_hash
-  } : {
-      _: 'inputPeerChat',
-      chat_id: chat.id
-    }
+const _getPeer = chat => {
+  const peer =
+    chat._ === 'channel'
+      ? {
+          _: 'inputPeerChannel',
+          channel_id: chat.id,
+          access_hash: chat.access_hash
+        }
+      : {
+          _: 'inputPeerChat',
+          chat_id: chat.id
+        }
   return peer
 }
 
@@ -80,11 +109,6 @@ const forwardMessages = async (telegram, messages, destination, source) => {
   }
 }
 
-
-
-
-
-
 const filterLastDay = ({ date }) => new Date(date * 1e3) > dayRange()
 
 const dayRange = () => Date.now() - new Date(86400000 * 4)
@@ -96,7 +120,9 @@ const selectChat = async (chats, tag) => {
     return chat
   }
   console.log('Select chat for ' + tag)
-  chats.map((channel, index) => console.log(`${index}  ${channel.title} (${channel.id})`))
+  chats.map((channel, index) =>
+    console.log(`${index}  ${channel.title} (${channel.id})`)
+  )
   console.log('Select chat by index')
   const chatIndex = await inputField('index')
   selectedChat = chats[chatIndex]
@@ -120,11 +146,10 @@ const printMessages = messages => {
   return formatted
 }
 
-
-const searchUsers = async (username) => {
+const searchUsers = async username => {
   const results = await telegram('contacts.search', {
     q: username,
-    limit: 100,
+    limit: 100
   })
   return results
 }
@@ -134,5 +159,6 @@ module.exports = {
   chatHistory,
   searchUsers,
   getNewMessages,
-  forwardMessages
+  forwardMessages,
+  completeHistory
 }
